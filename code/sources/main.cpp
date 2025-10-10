@@ -1,28 +1,82 @@
 
+
 // Copyright (c) 2025 Vicente Brisa Saez
 // GitHub: Vicen-te
 // License: MIT
 
+
+// ===================== STANDARD LIBRARIES =====================
 #include <iostream>
 #include <fstream>
 #include <random>
 #include <vector>
 #include <cmath>
 #include <string>
+#include <algorithm>
+#include <filesystem>
 
-#include "json.hpp"
-#include "../headers/model.hpp"
+namespace fs = std::filesystem;
+
+
+// ===================== CUSTOM HEADERS =====================
+#include "../headers/Model.hpp"
+#include "../headers/Tensor.hpp"
+#include "../headers/MNISTLoader.hpp"
+#include "../headers/Timer.hpp"
+
 #include "../headers/utils.hpp"
-#include "../headers/tensor.hpp"
 #include "../headers/fc_cpu.hpp"
 #include "../headers/fc_cuda.hpp"
+#include "json.hpp"
 
 using json = nlohmann::json;
+
 
 // Undefine DEBUG to disable debug prints in this file
 #ifdef DEBUG
 #undef DEBUG
 #endif
+
+static Model train(std::vector<std::vector<float>> train_X, std::vector<std::vector<float>> train_Y)
+{
+    Model model;
+    model.add_layer(784, 128, "relu");
+    model.add_layer(128, 10, "softmax");
+
+    int epochs = 5;
+    float lr = 0.01f;
+    int batch_size = 64;
+
+    for (int e = 0; e < epochs; ++e) 
+    {
+        float epoch_loss = 0;
+        for (size_t i = 0; i < train_X.size(); i += batch_size)
+        {
+            size_t b = std::min(batch_size, (int)(train_X.size() - i));
+            float batch_loss = 0;
+
+            for (size_t j = 0; j < b; ++j)
+            {
+                std::vector<std::vector<float>> A = cpu::forward_cpu(model, train_X[i + j]);
+                cpu::Gradients grads = cpu::backward_cpu(model, A, train_Y[i + j]);
+
+                cpu::sgd_update(model, grads, lr);
+
+                float loss = cpu::cross_entropy(train_Y[i + j], A.back());
+                epoch_loss += loss;
+                batch_loss += loss;
+            }
+        }
+#ifdef DEBUG
+        std::cout << "=== Epoch " << e + 1 << " finished - Avg epoch loss: "
+            << epoch_loss / train_X.size() << " ===\n";
+#endif
+    }
+
+    std::cout << "Training done! Model saved and graph generated.\n";
+    return model;
+}
+
 
 /**
  * @brief Load a fully connected model from a JSON file.
@@ -80,12 +134,12 @@ static Model load_model(const std::string& path)
     return model;
 }
 
-int main(int argc, char** argv)
+int inference(int argc, char** argv)
 {
     // --- Parse model path and benchmark CSV path from command line ---
     std::string base = PROJECT_SOURCE_DIR;
     std::string model_path = base + "/data/models/model_small1.json";
-    std::string bench_path = base + "/results/bench.csv";
+    std::string bench_path = base + "/data/results/bench.csv";
 
     if (argc > 1) model_path = argv[1];
     if (argc > 2) bench_path = argv[2];
@@ -207,7 +261,7 @@ int main(int argc, char** argv)
     // --- CPU vs CUDA correctness check ---
     std::vector<float> cpu_out = input;
     for (auto& L : model.layers)
-        cpu_out = fc_forward_seq(L.W, L.b, cpu_out);
+        cpu_out = cpu::forward_par(L.W, L.b, cpu_out);
 
     std::vector<float> cuda_out = cuda_forward(input);
 
@@ -229,7 +283,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < warmup_runs; ++i)
     {
         std::vector<float> tmp = input;
-        for (auto& L : model.layers) tmp = fc_forward_par(L.W, L.b, tmp);
+        for (auto& L : model.layers) tmp = cpu::forward_par(L.W, L.b, tmp);
         cuda_forward(input);
     }
 
@@ -239,7 +293,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < repetitions; ++i)
     {
         std::vector<float> tmp = input;
-        for (auto& L : model.layers) tmp = fc_forward_par(L.W, L.b, tmp);
+        for (auto& L : model.layers) tmp = cpu::forward_par(L.W, L.b, tmp);
     }
     double cpu_ms = timer.elapsed_ms() / repetitions;
 
@@ -262,5 +316,46 @@ int main(int argc, char** argv)
     write_csv(bench_path, header, rows);
     std::cout << "Results written to " << bench_path << "\n";
 
+    return 0;
+}
+
+
+int main(int argc, char** argv)
+{
+    std::string base = PROJECT_SOURCE_DIR;
+    std::string data = base + "/data/";
+    std::string minst = data + "/mnist/";
+    std::string models = data + "/models/";
+    std::string results = data + "/results/";
+
+    fs::create_directories(data);
+    fs::create_directories(minst);
+    fs::create_directories(models);
+    fs::create_directories(results);
+
+    inference(argc, argv);
+
+    //std::string images_path = minst + "train-images.idx3-ubyte";
+    //std::string labels_path = minst + "train-labels.idx1-ubyte";
+    //std::string model_path = models + "mnist_fc.json";
+
+
+    //std::cout << "Loading MNIST...\n";
+
+    //MNISTLoader minst_loader;
+    //minst_loader.load(images_path, labels_path);
+
+    //std::vector<std::vector<float>> train_X = minst_loader.get_images();
+    //std::vector<std::vector<float>> train_Y = minst_loader.get_labels();
+
+    ////Model model = train(train_X, train_Y);
+
+    //Model model;
+    //model.load_json(model_path);
+    //minst_loader.ascii_preview();
+
+	std::cout << "Press ENTER to exit...";
+    std::cin.get();  // waits for the user to press ENTER
+	
     return 0;
 }
