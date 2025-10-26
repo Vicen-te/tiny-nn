@@ -8,13 +8,10 @@
 #pragma once
 
 
-// ===================== STANDARD LIBRARIES =====================
+// ===================== STANDARD HEADERS =====================
 #include <vector>
-#include <string>
+#include <filesystem>
 #include <fstream>
-#include <cstdint>
-#include <stdexcept>
-#include <cmath>
 
 
 /**
@@ -28,6 +25,8 @@ class MNISTLoader
 
 private:
 
+
+    // ===================== MEMBERS =====================
     std::vector<std::vector<float>> images; ///< Normalized MNIST images
     std::vector<std::vector<float>> labels; ///< One-hot encoded labels
 
@@ -35,6 +34,8 @@ private:
     size_t n_rows = 0;    ///< Number of rows per image
     size_t n_cols = 0;    ///< Number of columns per image
 
+
+    // ===================== INTERNAL HELPERS =====================
     /**
      * @brief Reads a 32-bit unsigned integer from a binary stream in big-endian format.
      *
@@ -53,13 +54,15 @@ private:
     }
 
 
+
 public:
 
+
+    // ===================== CONSTRUCTORS =====================
     MNISTLoader() = default;
 
 
     // ===================== ACCESSORS =====================
-
     /**
      * @brief Get a reference to the loaded images
      * @return Const reference to 2D vector of normalized image pixels
@@ -76,23 +79,22 @@ public:
      * @brief Return the number of images
      * @return Number of loaded images
      */
-    inline const size_t size() const { return n_images; }
+    inline size_t size() const { return n_images; }
 
     /**
      * @brief Return the number of rows in each image
      * @return Image height (rows)
      */
-    inline const size_t rows() const { return n_rows; }
+    inline size_t rows() const { return n_rows; }
 
     /**
      * @brief Return the number of columns in each image
      * @return Image width (columns)
      */
-    inline const size_t cols() const { return n_cols; }
+    inline size_t cols() const { return n_cols; }
 
 
     // ===================== DATASET MANAGEMENT =====================
-
     /**
      * @brief Load MNIST dataset from the given image and label files.
      *
@@ -102,8 +104,10 @@ public:
      * @param path_images Path to the MNIST images file (ubyte format)
      * @param path_labels Path to the MNIST labels file (ubyte format)
      */
-    void load(const std::string& path_images, const std::string& path_labels);
+    void load(const std::filesystem::path& path_images, const std::filesystem::path& path_labels);
 
+
+    // ===================== UTILITIES / VISUALIZATION =====================
     /**
      * @brief Simple ASCII visualization of a single MNIST image.
      *
@@ -114,4 +118,5 @@ public:
      * @param index Index of the image to display
      */
     void ascii_preview(size_t index = 0) const;
+
 };

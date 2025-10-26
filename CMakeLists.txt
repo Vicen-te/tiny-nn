@@ -35,7 +35,7 @@ endif()
 
 # Warnings (C++ only; avoid passing MSVC flags directly to NVCC)
 if (MSVC)
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/W4>)
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/W3>)
 else()
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic>)
 endif()
@@ -46,11 +46,15 @@ link_directories("${CUDA_TOOLKIT_ROOT_DIR}/lib/x64")
 
 # Source files
 file(GLOB SRC_CPP "${CMAKE_SOURCE_DIR}/code/sources/*.cpp")
-file(GLOB SRC_CU  "${CMAKE_SOURCE_DIR}/code/sources/*.cu")
 file(GLOB HEADERS "${CMAKE_SOURCE_DIR}/code/headers/*.hpp")
+file(GLOB SRC_CU  "${CMAKE_SOURCE_DIR}/code/sources/*.cu"
+				  "${CMAKE_SOURCE_DIR}/code/headers/*.cuh")
 
 # Create executable
 add_executable(tiny-nn ${SRC_CPP} ${SRC_CU} ${HEADERS})
+
+# Link cuBLAS
+target_link_libraries(tiny-nn PRIVATE cublas)
 
 # Visual Studio filters
 source_group("Source Files" FILES ${SRC_CPP})
@@ -71,5 +75,4 @@ target_compile_features(tiny-nn PUBLIC cxx_std_20)
 # Define DEBUG only in Debug builds (cross-platform)
 target_compile_definitions(tiny-nn PRIVATE
     $<$<CONFIG:Debug>:DEBUG>
-	PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )

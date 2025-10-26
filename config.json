@@ -1,0 +1,26 @@
+{
+  
+  "paths": 
+  {
+    "data": "data",
+    "dataset": "data/mnist",
+    "models": "data/models",
+    "results": "data/results"
+  },
+
+  "training": 
+  {
+    "epochs": 17,
+    "lr": 0.01,
+    "batch_size": 64
+  },
+
+  "files": 
+  {
+    "model": "fc_digit_classification.json",
+    "cpu-gpu": "weights_for_cpu_gpu.json",
+    "benchmark": "bench.csv",
+    "log": "training_log.txt"
+  }
+  
+}

@@ -9,14 +9,17 @@
 #include "../headers/MNISTLoader.hpp"
 
 
-// ===================== STANDARD LIBRARIES =====================
+// ===================== STANDARD HEADERS =====================
 #include <iostream>
-#include <iomanip>
 #include <algorithm>
-#include <cmath>
+#include <stdexcept>
 
 
-void MNISTLoader::load(const std::string& path_images, const std::string& path_labels)
+void MNISTLoader::load
+(
+    const std::filesystem::path& path_images, 
+    const std::filesystem::path& path_labels
+)
 {
     std::ifstream ifs_images(path_images, std::ios::binary);
     std::ifstream ifs_labels(path_labels, std::ios::binary);
@@ -25,12 +28,14 @@ void MNISTLoader::load(const std::string& path_images, const std::string& path_l
         throw std::runtime_error("Cannot open MNIST files");
 
     // Read MNIST file headers
-    uint32_t magic_images = read_be_uint32(ifs_images); //< Unused, but could be checked for format validation
+
+    // Unused, but could be checked for format validation
+    [[maybe_unused]] uint32_t magic_images = read_be_uint32(ifs_images); 
     n_images = read_be_uint32(ifs_images);
     n_rows = read_be_uint32(ifs_images);
     n_cols = read_be_uint32(ifs_images);
 
-    uint32_t magic_labels = read_be_uint32(ifs_labels); //< Unused
+    [[maybe_unused]] uint32_t magic_labels = read_be_uint32(ifs_labels); //< Unused
     uint32_t n_labels = read_be_uint32(ifs_labels);
 
     if (n_images != n_labels)

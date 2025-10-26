@@ -8,30 +8,60 @@
 #pragma once
 
 
-// ===================== STANDARD LIBRARIES =====================
+// ===================== STANDARD HEADERS =====================
 #include <chrono>
-#include <iomanip>
 
 
 /**
  * @brief Simple high-resolution timer utility for benchmarking.
  *
- * Measures elapsed time in milliseconds using std::chrono::high_resolution_clock.
+ * Uses std::chrono::high_resolution_clock to measure elapsed time
+ * with millisecond precision. Useful for profiling code sections.
  */
-struct Timer
+class Timer
 {
-    using Clock = std::chrono::high_resolution_clock;
-    Clock::time_point start_time;
 
+private:
+
+
+    // ===================== MEMBERS =====================
+    using Clock = std::chrono::high_resolution_clock;   ///< Alias for high-resolution clock
+    using TimePoint = Clock::time_point;                ///< Alias for a time point
+
+    TimePoint start_time;                               ///< Start time of the timer  
+
+
+
+public:
+
+
+    // ===================== CONSTRUCTORS =====================
     /// Constructor — automatically starts the timer
     inline Timer() : start_time(Clock::now()) {}
 
+
+    // ===================== MUTATORS =====================
     /// Reset the timer to the current time
     inline void reset() { start_time = Clock::now(); }
 
-    /// Get the elapsed time in milliseconds since the last reset
-    inline double elapsed_ms() const
+
+    // ===================== ACCESSORS =====================
+    /**
+     * @brief Get elapsed time in milliseconds since last reset.
+     * @return Elapsed time in milliseconds (double)
+     */
+    [[nodiscard]] inline double elapsed_milliseconds() const noexcept
     {
         return std::chrono::duration<double, std::milli>(Clock::now() - start_time).count();
     }
+
+    /**
+    * @brief Get elapsed time in seconds since last reset.
+    * @return Elapsed time in seconds (double)
+    */
+    [[nodiscard]] inline double elapsed_seconds() const noexcept
+    {
+        return std::chrono::duration<double>(Clock::now() - start_time).count();
+    }
+
 };

@@ -1,15 +1,16 @@
 
 # Tiny-NN — Fully Connected Neural Networks in C++20 + CUDA 12.8
 
-Tiny-NN implements fully connected neural networks with CPU and CUDA support. It provides:
+Tiny-NN is a high-performance implementation of fully connected neural networks supporting both CPU and GPU execution. It's designed for easy experimentation and benchmarking, featuring:
 - CPU execution (parallelized)
 - CUDA execution with memory reuse (weights and biases uploaded only once per layer)
 - Training with backpropagation and SGD
 - Model serialization using [`json.hpp`](https://github.com/nlohmann/json) (MIT licensed) included in the repository
+- Simple MNIST dataset integration and ASCII preview
 
 ## Requirements
-- C++20 compiler
-- CUDA 12.8 installed (for GPU support)
+- C++20 compatible compiler
+- CUDA 12.8 (for GPU support)
 - CMake >= 3.24
 - Python 3.12 (optional, for dataset download and preview)
 
@@ -42,13 +43,14 @@ python data/generate_model.py 128 64 10
 - C++: `ascii_preview()` function in MNISTLoader
 
 	
-## Build with Visual Studio:
+## Build 
+### Visual Studio:
 
 - Open Visual Studio -> File -> Open -> Folder... and select the project folder.
 - Visual Studio will detect CMake. For GPU usage, choose x64 configuration.
 - Build -> Build All.
 
-### Or from PowerShell / Developer Command Prompt (recommended):
+### PowerShell / Developer Command Prompt (recommended):
 #### Option 1: Specify all options manually
 ```powershell
 mkdir build
@@ -77,23 +79,44 @@ cmake --build build --config Release
 
 From the `build/Release` folder:
 ```kotlin
-tinny-nn.exe
+tinny-nn.exe <mode>
 ```
 
-Expected output:
+Modes:
 
-- CPU vs CUDA correctness check
-- Average timings per method
-- `results/bench.csv` with timings
-- Training progress (if enabled)
-- ASCII preview of MNIST samples (if enabled)
+- train or t → Train model
+- inference or i → Run inference on a sample
+- benchmark or b → Compare CPU vs CUDA performance
+
+### Expected output
+
+#### Training (train / t)
+
+- Training progress printed to console
+- Training duration in seconds
+- Saved model JSON to ./data/models/fc_digit_classification.json
+- ASCII MNIST preview of a single sample image
+
+#### Inference (inference / i)
+
+- Output values of selected sample
+- Maximum value and its index
+- ASCII preview of the sample
+
+#### Benchmark (benchmark / b)
+
+- CPU vs GPU inference correctness check
+- Average inference timings per method
+- CSV results saved to ./data/results/bench.csv
+
+>Currently, benchmark only measures inference, not training. Measuring training performance would require additional implementation.
 
 ## Notes & Improvements
 
 - Currently, weights `W` and biases `b` are uploaded to the GPU **once per layer**. The input vector is uploaded for each inference.  
-- Intermediate GPU buffers (`dX`/`dY`) are allocated per layer, but **are not fully reused** across inferences or layers.  
+- cuBLAS GEMM is already used for matrix multiplications, replacing the simple custom FC kernel.  
+- Intermediate GPU buffers (`dX`/`dY`) are allocated per layer and batch and are **not fully reused**, though CUDA streams enable asynchronous execution.  
 - For higher performance (future improvements):  
-  - Reuse intermediate GPU buffers without synchronizing per layer (use CUDA streams).  
-  - Implement batching to process multiple inputs simultaneously.  
-  - Consider replacing the simple FC kernel with GEMM/cuBLAS for faster matrix multiplication.  
+  - Reusing intermediate GPU buffers across layers and batches via CUDA streams.
+  - Implementing more efficient batching and overlapping of data transfers with computation.  
 - Profiling can be done with Nsight Systems / Nsight Compute.
