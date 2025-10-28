@@ -5,9 +5,6 @@
 // License: MIT
 
 
-#pragma once
-
-
 // ===================== MAIN HEADER =====================
 #include "../headers/Tensor.hpp"
 
@@ -15,6 +12,7 @@
 // ===================== STANDARD HEADERS =====================
 #include <cuda_runtime.h>
 #include <stdexcept>
+#include <cstring>
 #include <format>
 
 

@@ -10,6 +10,7 @@
 
 
 // ===================== STANDARD HEADERS =====================
+#include <algorithm>
 #include <ranges>
 
 

@@ -11,7 +11,8 @@
 // ===================== STANDARD HEADERS =====================
 #include <vector>
 #include <cassert>
-#include <stdexcept> 
+#include <stdexcept>
+#include <cstring>
 
 
 /**

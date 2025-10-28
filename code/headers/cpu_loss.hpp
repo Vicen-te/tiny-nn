@@ -38,9 +38,8 @@ namespace cpu::loss
     {
         float loss = 0.0f;
         for (size_t i = 0; i < y_true.size(); ++i)
-            loss -= y_true[i] * std::log(std::clamp(y_pred[i], eps, 1.0f));
-
-        return loss;
+            loss -= y_true[i] * logf(fminf(fmaxf(y_pred[i], eps), 1.0f));
+        return loss; 
     }
 
 }

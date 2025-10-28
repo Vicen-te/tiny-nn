@@ -1,8 +1,9 @@
 /data/mnist/**
 
 build/*
-!build/Release/ 
+!build/Release/*.lib
 !build/Release/*.exe
 
 out/
 **/.vs/
+*.csv

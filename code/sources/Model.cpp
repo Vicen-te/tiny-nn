@@ -27,7 +27,9 @@ void Model<cpu::Layer>::train
 )
 {
     // Compute total batches for epoch
+#ifdef DEBUG
     const size_t total_batches = (X.size() + num_batches - 1) / num_batches;
+#endif
     const size_t num_layers = layers.size();
 
     for (int epoch = 0; epoch < epochs; ++epoch)
@@ -98,7 +100,7 @@ void Model<cpu::Layer>::train
 
         std::cout << "=== Epoch " << epoch + 1
             << " finished - Avg epoch loss: " << epoch_loss / X.size()
-            << " ===\n\n";
+            << " ===" << std::endl;
     }
 
     std::cout << "CPU Training done!\n";
@@ -177,7 +179,9 @@ void Model<gpu::Layer>::train
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
+#ifdef DEBUG
     const size_t total_batches = (X.size() + num_batches - 1) / num_batches;
+#endif
 
     size_t in_features = X[0].size();
     size_t out_features = Y[0].size();

@@ -19,11 +19,11 @@
 #include <span>
 
 
-// ===================== PROJECT HEADERS =====================
-#include "../headers/Timer.hpp"
-#include "../headers/Model.hpp"
-#include "../headers/GpuLayer.hpp"
-#include "../headers/CpuLayer.hpp"
+// ===================== LIBRARY HEADERS =====================
+#include "Timer.hpp"
+#include "Model.hpp"
+#include "GpuLayer.hpp"
+#include "CpuLayer.hpp"
 
 
 namespace
@@ -202,44 +202,88 @@ namespace
 
 }
 
-void benchmark::run
-(
-    const std::filesystem::path& model_path, 
-    const std::filesystem::path& bench_path
-)
+namespace benchmark
 {
-    // Load Model
-    std::cout << "Loading model from: " << model_path << "\n";
+    void compare_models
+    (
+        const std::filesystem::path& model_path, 
+        const std::filesystem::path& bench_path
+    )
+    {
+        // Load Model
+        std::cout << "Loading model from: " << model_path << "\n";
 
-    Model<cpu::Layer> cpu_model;
-    Model<gpu::Layer> gpu_model;
+        Model<cpu::Layer> cpu_model;
+        Model<gpu::Layer> gpu_model;
 
-    cpu_model.from_json(model_path);
-    gpu_model.from_json(model_path);
+        cpu_model.from_json(model_path);
+        gpu_model.from_json(model_path);
 
-    // Generate random input
-    const std::vector<float> input = generate_random_input(cpu_model.get_input_size());
+        // Generate random input
+        const std::vector<float> input = generate_random_input(cpu_model.get_input_size());
 
-    // CPU vs CUDA correctness check
-    std::vector<float> cpu_out = cpu_model.inference(input);
-    std::vector<float> cuda_out = gpu_model.inference(input);
+        // CPU vs CUDA correctness check
+        std::vector<float> cpu_out = cpu_model.inference(input);
+        std::vector<float> cuda_out = gpu_model.inference(input);
 
-    // Print CPU output
-    std::cout << "CPU output:\n";
-    for (size_t i = 0; i < cpu_out.size(); ++i)
-        std::cout << cpu_out[i] << " ";
-    std::cout << std::endl << std::endl;
+        // Print CPU output
+        std::cout << "CPU output:\n";
+        for (size_t i = 0; i < cpu_out.size(); ++i)
+            std::cout << cpu_out[i] << " ";
+        std::cout << std::endl << std::endl;
 
-    // Print CUDA output
-    std::cout << "CUDA output:\n";
-    for (size_t i = 0; i < cuda_out.size(); ++i)
-        std::cout << cuda_out[i] << " ";
-    std::cout << std::endl << std::endl;
+        // Print CUDA output
+        std::cout << "CUDA output:\n";
+        for (size_t i = 0; i < cuda_out.size(); ++i)
+            std::cout << cuda_out[i] << " ";
+        std::cout << std::endl << std::endl;
 
-    // Check element-wise equality with tolerance
-    bool equals = vectors_equal_verbose(cpu_out, cuda_out, 8.3e-3f);
-    std::cout << "Inference (Forward) CPU vs CUDA match? " << (equals ? "YES" : "NO") << "\n";
+        // Check element-wise equality with tolerance
+        bool equals = vectors_equal_verbose(cpu_out, cuda_out, 8.3e-3f);
+        std::cout << "Inference (Forward) CPU vs CUDA match? " << (equals ? "YES" : "NO") << "\n";
 
-    // Performance benchmark
-    compare_inference_performance(cpu_model, gpu_model, input, bench_path);
+        // Performance benchmark
+        compare_inference_performance(cpu_model, gpu_model, input, bench_path);
+    }
+
+    bool verify_inference
+    (
+        std::span<const float> output, 
+        std::span<const float> expected_labels
+    )
+    {
+        // Argmax for prediction
+        int predicted_label = 0;
+        float max_pred = output[0];
+        for (size_t i = 1; i < output.size(); ++i)
+        {
+            if (output[i] > max_pred)
+            {
+                max_pred = output[i];
+                predicted_label = static_cast<int>(i);
+            }
+        }
+
+        // Find the index of the '1'
+        int expected_idx = 0;
+        for (size_t i = 0; i < expected_labels.size(); ++i)
+        {
+            if (expected_labels[i])
+            {
+                expected_idx = static_cast<int>(i);
+                break;
+            }
+        }
+
+        // Display results
+        std::cout << "Expected label: " << expected_idx << "\n";
+        std::cout << "Predicted label: " << predicted_label
+            << " (confidence=" << max_pred << ")\n";
+
+        std::cout << "Prediction: "
+            << ((predicted_label == expected_idx) ? "Correct" : "Incorrect")
+            << std::endl << std::endl;
+
+        return predicted_label == expected_idx;
+    }
 }

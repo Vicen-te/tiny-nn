@@ -13,12 +13,11 @@ namespace fs = std::filesystem;
 
 
 // ===================== PROJECT HEADERS =====================
-#include "../headers/Model.hpp"
-#include "../headers/MNISTLoader.hpp"
-#include "../headers/CpuLayer.hpp"
-#include "../headers/GpuLayer.hpp"
-#include "../headers/benchmark.hpp"
-#include "../headers/Timer.hpp"
+#include "Model.hpp"
+#include "MNISTLoader.hpp"
+#include "CpuLayer.hpp"
+#include "GpuLayer.hpp"
+#include "Timer.hpp"
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -29,18 +28,18 @@ using json = nlohmann::json;
 #undef DEBUG
 #endif
 
-enum class Mode { Train, Inference, Benchmark, Unknown };
+enum class Mode { TRAIN, INFERENCE, Unknown };
 constinit int inference_index = 10;
 
 
 int main(int argc, char** argv)
 {
     std::filesystem::path root = std::filesystem::current_path().parent_path();
-    std::cout << "Current directory: " << root << std::endl;
+    std::cout << "[Info] Current directory: " << root << std::endl;
 
     if (argc < 2) 
     {
-        std::cerr << "Usage: app < train or t | inference or i | benchmark or b >\n";
+        std::cerr << "[Error] Usage: app <train|t> or <inference|i>\n";
         return 1;
     }
 
@@ -52,12 +51,10 @@ int main(int argc, char** argv)
     // Map strings to enum values
     std::map<std::string, Mode> mode_map = 
     {
-        {"t",           Mode::Train},
-        {"train",       Mode::Train},
-        {"i",           Mode::Inference},
-        {"inference",   Mode::Inference},
-        {"b",           Mode::Benchmark},
-        {"benchmark",   Mode::Benchmark},
+        {"t",           Mode::TRAIN},
+        {"train",       Mode::TRAIN},
+        {"i",           Mode::INFERENCE},
+        {"inference",   Mode::INFERENCE},
     };
 
     Mode mode = Mode::Unknown;
@@ -75,21 +72,23 @@ int main(int argc, char** argv)
 
     // === Dataset ===
     MNISTLoader loader;
-    if (mode == Mode::Train || mode == Mode::Inference)
-        std::cout << "Loading MNIST...\n";
+
+    std::string_view loading = " Loading MNIST...\n";
+    std::string_view loaded = " MNIST loaded successfully.\n";
 
     // Switch based on mode
     switch (mode)
     {
-    case Mode::Train:
+    case Mode::TRAIN:
     {
+        std::cout << "[Train]" << loading;
         // Load training images and labels from MNIST dataset
         loader.load
         (
             root / cfg["paths"]["dataset"].get<std::string>() / "train-images.idx3-ubyte",
             root / cfg["paths"]["dataset"].get<std::string>() / "train-labels.idx1-ubyte"
         );
-        std::cout << "MNIST loaded successfully.\n";
+        std::cout << "[Train]" << loaded;
 
         // Retrieve data as vectors of floats
         std::vector<std::vector<float>> X = loader.get_images();
@@ -122,7 +121,7 @@ int main(int argc, char** argv)
 
         // Print training duration in seconds
         double training_time_ms = timer.elapsed_milliseconds();
-        std::cout << "Training completed in " << training_time_ms / 1000.0
+        std::cout << "[Train] Training completed in " << training_time_ms / 1000.0
             << " seconds.\n";
 
         // Save the current model configuration and weights to a JSON file
@@ -131,21 +130,24 @@ int main(int argc, char** argv)
             root / cfg["paths"]["models"].get<std::string>() /
             cfg["files"]["model"].get<std::string>()
         );
+
+        [[fallthrough]];
     }
-    case Mode::Inference:
+    case Mode::INFERENCE:
     {
+        std::cout << "[Inference]" << loading;
         // Load test images and labels from MNIST dataset
         loader.load
         (
             root / cfg["paths"]["dataset"].get<std::string>() / "t10k-images.idx3-ubyte",
             root / cfg["paths"]["dataset"].get<std::string>() / "t10k-labels.idx1-ubyte"
         );
-        std::cout << "MNIST loaded successfully.\n";
+        std::cout << "[Inference]" << loaded;
 
         // Select a single sample image for inference
         std::vector<float> sample = loader.get_images()[inference_index];
 
-        Model<gpu::Layer> model;
+        Model<cpu::Layer> model;
 
         // Load pre-trained model from JSON
         model.from_json
@@ -170,34 +172,22 @@ int main(int argc, char** argv)
         }
 
         // Print maximum output value and its index
-        std::cout << "Maximum output value: " << max_val
+        std::cout << "[Inference] Maximum output value: " << max_val
             << " at index " << max_idx << std::endl;
 
         // Display ASCII preview of the sample
-        std::cout << "Sample preview:" << std::endl;
+        std::cout << "[Inference] Sample preview:" << std::endl;
         loader.ascii_preview(inference_index);
         break;
     }
-    case Mode::Benchmark:
-        // Run benchmark comparing CPU vs GPU performance
-        benchmark::run
-        (
-            root / cfg["paths"]["models"].get<std::string>() /
-            cfg["files"]["cpu-gpu"].get<std::string>(), 
-
-            root / cfg["paths"]["results"].get<std::string>() /
-            cfg["files"]["benchmark"].get<std::string>()
-        );
-        break;
-
     case Mode::Unknown:
     default:
-        std::cerr << "Unknown mode: " << mode_str << "\n";
+        std::cerr << "[Error] Unknown mode: " << mode_str << "\n";
         break;
     }
 
     // Wait for user input before exiting the program
-	std::cout << "Press ENTER to exit...";
+    std::cout << "[Info] Press ENTER to exit...";
     std::cin.get();
 	
     return 0;
